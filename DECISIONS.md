@@ -352,7 +352,13 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
    Kaiko ≈ $28.5k/yr (unverified). Determines how much microstructure work is feasible.
 3. **Hot zones** — which paths require sign-off and "explain the blast radius."
 4. **Autonomy level** — Loop Training Mode defaults to approve-every-step.
-5. `gh` CLI not yet installed (preferred over the GitHub MCP server).
+5. ~~`gh` CLI not yet installed~~ — **DONE.** `gh` 2.97.0 in `~/.local/bin`,
+   authenticated as `ajith4134`, scopes `repo, workflow, gist, read:org`.
+6. **Liquidation feed has no source.** Binance withholds `forceOrder` from this
+   host and `allForceOrders` was withdrawn from the public REST API — measured,
+   see `binance-withheld-streams.md`. The subscription is kept so recovery would
+   be noticed, and the tile stays red until then. Reaching it needs either a
+   second venue for liquidations or a paid feed.
 
 ---
 
@@ -363,6 +369,24 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
    restructured 220 → 169 lines with Rule 2's operational half promoted to the
    `youtube-video` skill. Remaining optional item: a **Stop hook** for verification,
    which needs a project with a runnable test command — so it belongs to step 3.
-2. **Write the full system spec** from this document. ← *next*
-3. Phase 0: repo skeleton, ledger schema, risk gate, NautilusTrader integration —
-   **before any strategy code**. Add the Stop hook here, wired to the real test suite.
+2. ~~**Write the full system spec**~~ — **SUPERSEDED 2026-08-03.** The spec was
+   written per-layer as implementation plans instead of as one document, which is
+   what `docs/superpowers/plans/` holds. `ARCHITECTURE.md` §3 is the system spec.
+3. ~~**Phase 0 — Truth**~~ — **DONE 2026-08-03.** Layer 0 raw capture (two venues,
+   supervised, restarts on boot) and Layer 1 bitemporal store + clock-gated reader
+   are built, tested and running. 383 tests green.
+4. **Phase 1 — Reality filter: the Cost Engine.** ← *next*. Plan written
+   2026-08-03: `docs/superpowers/plans/2026-08-03-cost-engine-reality-filter.md`.
+   Grounded on a measured constraint — Hyperliquid publishes its full fee schedule
+   unauthenticated, Binance does not (401 without an API key), so the engine is a
+   declared table plus a verifier rather than a pure live fetcher.
+5. **Phase 2 — Ops floor**, then Phase 3 search integrity, per `ARCHITECTURE.md` §3.
+
+### Known gaps carried forward, not silently dropped
+
+- **Provenance-flagged backfill** (Phase 0's last item) is not implemented — gap
+  *detection* is live and recorded, but a backfilled row is not yet labelled as
+  interpolated. Nothing currently backfills, so this is a prerequisite of the
+  first thing that does, not an outstanding defect.
+- **Liquidation feed unavailable** — see §12.6 and `binance-withheld-streams.md`.
+- **Auto-halt on venue degradation** not implemented; health monitoring is live.
