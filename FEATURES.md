@@ -31,6 +31,8 @@ second strategy / portfolio · **P3** = scale · **—** = deliberately deferred
 | Per-feed data-quality score | P1 | **[MISSED]** — feed health as a first-class metric, not an assumption |
 | Gap detection + provenance-flagged backfill | P0 | Interpolated candles must be *labelled*, never silently blended |
 | Wash-trading discount on reported volume | P1 | **[MISSED]** — never size off raw aggregate volume |
+| **Bitemporal store** | P0 | Every row carries event, ingestion and availability time. Append-only — corrections are new rows, never overwrites |
+| **Clock-gated access API** | P0 | The only path to data, shared by backtest and live. Serves `availability_time <= sim_clock`; joins key on availability, never event time |
 
 ## 2. Feature engineering
 
