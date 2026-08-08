@@ -2,3 +2,6 @@
 # instagram-findings.md and instagram-sources.md. The findings are the artefact; the
 # raw pull is not.
 instagram-raw/
+
+# Generated: reports machine state, rebuilt by scripts/build_ledger_index.py (Rule 9)
+ledger/INDEX.md
