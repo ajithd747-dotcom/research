@@ -76,7 +76,7 @@ built.** See the dedicated subsection below.
 | RX-002 | Exchange-side kill switch / dead-man | risk | PLANNED | P0 | Not built. Kraken 15–30s/60s, Binance `countdownCancelAll` 30s/120s specified | FEATURES.md §6; DECISIONS.md §6 | No prior-art match found: prior repos build in-process kill switches (see RX-018) but none drive an exchange-side dead-man countdown |
 | RX-003 | Watchdog process + firewall network kill | risk | PLANNED | P0 | Not built. Must run as a separate OS process per `DECISIONS.md` §6 — "the bot cannot police itself" | FEATURES.md §6; DECISIONS.md §6; `statuswall/evidence.py:299` (current repo, confirms absence: "Memory and CPU watchdogs not implemented") | **No working prior-art either.** `nse-botonly`'s own gap doc (`docs/REDESIGN_feature_atlas_v1.md` §7) flags that its `corrigibility_switch` is in-process only, not a separate watchdog — the most complete donor repo has the identical gap |
 | RX-004 | Liquidation-distance monitor | risk | PLANNED | P0 | Not built. "[MISSED] — for perps this is survival; alert on margin ratio, not just P&L" | FEATURES.md §6 | Prior-art to port: `trading/crypto/liquidation.py` isolated/cross-margin liquidation-price estimator (nse-crypto-bot-final, documented as ignoring funding accrual/taker fees — an estimate, not exact); `account_risk/monitor.py` liquidation-price + margin/exposure monitor (nse-crypto-bot-final) |
-| RX-005 | Post-trade reconciliation vs exchange truth | risk | PLANNED | P0 | Not built. "Rebuild local state on every startup; refuse to start if reconciliation fails" — NautilusTrader-invariant tolerance (qty to instrument precision, avg price within 0.01%) | FEATURES.md §6; DECISIONS.md §6 | Prior-art, imperfect: `live_trader.py` position reconciliation at startup (early-repos-strategy-execution.md, adopts/closes mismatches on boot) but its periodic "reconcile" loop **only re-syncs capital, not positions**, despite the name — flagged in-source as "narrower than its name implies". Not a refuse-to-start gate |
+| RX-005 | Post-trade reconciliation vs exchange truth | risk | BUILT | P0 | src/execution/state_recovery.py (refuse-to-start, no adopt path). Was: "Rebuild local state on every startup; refuse to start if reconciliation fails" — NautilusTrader-invariant tolerance (qty to instrument precision, avg price within 0.01%) | FEATURES.md §6; DECISIONS.md §6 | Prior-art, imperfect: `live_trader.py` position reconciliation at startup (early-repos-strategy-execution.md, adopts/closes mismatches on boot) but its periodic "reconcile" loop **only re-syncs capital, not positions**, despite the name — flagged in-source as "narrower than its name implies". Not a refuse-to-start gate |
 
 ### Circuit breakers and health monitors — prior-art, with the documented-only pattern
 
@@ -246,9 +246,9 @@ each names a mechanism the postmortem shows failing on this project's own prior 
 
 | # | Requirement | Category | Status | Phase | Evidence / satisfying module | Sources | Notes |
 |---|---|---|---|---|---|---|---|
-| EX-001 | Idempotency key on every order | execution | PLANNED | P0 | Not built. Client order ID derived deterministically; query by original ID on timeout, never blind-retry | FEATURES.md §5; DECISIONS.md §6; research-corpus.md row 18 | Everbright Securities lost ~$3.8B doing the opposite (notes-and-media.md row 42, DECISIONS.md §6). Prior-art: order lifecycle state machine with illegal-transition guards (nse-crypto-bot-final row 65); binary-fill-state retry bug and the correct fix pattern documented (trading-operational-failures.md, notes-and-media.md rows 158-159) |
-| EX-002 | Partial-fill tracking by remaining quantity | execution | PLANNED | P0 | Not built. Never a binary filled flag | FEATURES.md §5; research-corpus.md row 19 | Prior-art: order lifecycle state machine PENDING→PARTIAL→FILLED (nse-crypto-bot-final row 65); documented bug class where `if status=="FILLED"` mishandles PARTIALLY_FILLED and doubles intended size on retry (notes-and-media.md row 158) — the exact failure this Phase 0 item prevents |
-| EX-003 | Signal expiry / time-in-force discipline | execution | PLANNED | P0 | Not built. "[MISSED] — a signal computed 5 minutes ago must not fire now" | FEATURES.md §5; research-corpus.md row 23 | Named directly in the nine-bot design: "Signal expiry bound on waiting... expired = abandoned + logged" (`FEATURES.md` §3b) and PROFIT-TAIL's `time_the_entry` function is bounded by it (notes-and-media.md row 10) |
+| EX-001 | Idempotency key on every order | execution | BUILT | P0 | src/execution/order_intent_wal.py (deterministic id, write-before-send, no blind retry). Was: Client order ID derived deterministically; query by original ID on timeout, never blind-retry | FEATURES.md §5; DECISIONS.md §6; research-corpus.md row 18 | Everbright Securities lost ~$3.8B doing the opposite (notes-and-media.md row 42, DECISIONS.md §6). Prior-art: order lifecycle state machine with illegal-transition guards (nse-crypto-bot-final row 65); binary-fill-state retry bug and the correct fix pattern documented (trading-operational-failures.md, notes-and-media.md rows 158-159) |
+| EX-002 | Partial-fill tracking by remaining quantity | execution | BUILT | P0 | src/execution/order_lifecycle.py (ported from EX-049, Decimal + quantity_step). Was: Never a binary filled flag | FEATURES.md §5; research-corpus.md row 19 | Prior-art: order lifecycle state machine PENDING→PARTIAL→FILLED (nse-crypto-bot-final row 65); documented bug class where `if status=="FILLED"` mishandles PARTIALLY_FILLED and doubles intended size on retry (notes-and-media.md row 158) — the exact failure this Phase 0 item prevents |
+| EX-003 | Signal expiry / time-in-force discipline | execution | BUILT | P0 | src/execution/order_intent_wal.py (valid_for_ns, refused pre-write, expiry logged). Was: "[MISSED] — a signal computed 5 minutes ago must not fire now" | FEATURES.md §5; research-corpus.md row 23 | Named directly in the nine-bot design: "Signal expiry bound on waiting... expired = abandoned + logged" (`FEATURES.md` §3b) and PROFIT-TAIL's `time_the_entry` function is bounded by it (notes-and-media.md row 10) |
 
 ### Order types, routing, and cost-aware execution (P1–P3 named items)
 
@@ -712,3 +712,26 @@ too tight and quietly degraded the consistent SPA toward the Reality Check it is
 meant to dominate. Invisible in the p-value's scale invariance; visible only against
 a reference implementation. **The corpus's failure mode is not exclusive to the
 corpus.**
+
+### Addendum 3 — the first donor worth porting, and RX-005's gap confirmed
+
+EX-001, EX-002, EX-003 and RX-005 built 2026-08-08 in `src/execution/`, 58 tests.
+
+**EX-049 is the first prior-art row in this audit that survived being read.**
+`nse-crypto-bot-final/trading/execution/order_state.py` has real transition guards,
+catches over-fill, computes a size-weighted average price, and exposes `remaining` as
+a property rather than a filled flag. It was ported with credit. Two changes: `Decimal`
+in place of `float` with `EPS = 1e-9`, and rejections moved out of the `fills` list
+where they sat as a record with no `qty` inside the list everything else sums over.
+
+After four donors that failed in the flattering direction, this one is worth naming
+explicitly — **the corpus is not uniformly unreliable, and treating it that way would
+waste the 599 PRIOR-ART rows.** The rule that works is not "distrust the ledger", it
+is "read the donor".
+
+**RX-005's recorded gap is real.** `live_trader.py` adopts or closes mismatches on
+boot rather than refusing to start, and its periodic "reconcile" loop only re-syncs
+capital, not positions, despite the name — flagged in its own source as *"narrower
+than its name implies"*. `state_recovery.py` has no `adopt_mismatches` parameter, and
+a test asserts its absence: adopting a mismatch makes a symptom disappear while its
+cause keeps running.
