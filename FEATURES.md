@@ -136,6 +136,7 @@ one-layer linear model on standard forecasting benchmarks.
 | **Reduce-only orders** | P1 | **[MISSED]** — prevents an exit accidentally opening a reverse position |
 | Idempotency key on every order | P0 | Client order ID derived deterministically |
 | Partial-fill tracking by remaining quantity | P0 | Never a binary filled flag |
+| **Cost engine — round-trip breakeven gate** | P1 | Every strategy queries it **before a signal is accepted**. Returns round-trip breakeven for (venue, pair, size, order type), or a typed refusal naming what was missing. A quote resting on a fee nobody fetched reports itself unverified |
 | Fee-tier-aware venue routing | P1 | Worth more than any execution algorithm at this size |
 | Maker-vs-taker decision per order | P1 | Post-only as cost reduction, not a standalone strategy |
 | Per-order slippage budget + abort | P1 | **[MISSED]** — cancel if the book moved past tolerance before ack |
