@@ -26,9 +26,10 @@ that is fully built, fully tested and called by nothing is not CLAIMED). One new
 was found in this slice beyond what either sibling recorded: `probe_venue_health` in
 `src/statuswall/evidence.py`, which the sibling files' own ops/security sweep did not surface.
 
-**Merging.** 81 raw rows collapsed into 25 merge-groups (mostly same-section IDEAS-*.md clusters that
-describe facets of one mechanism, e.g. the sealed-envelope-metric trio, or the nine `ARCHITECTURE.md
-§3c` "Stack:" lines). 24 raw rows were not emitted as rows at all because the identical or
+**Merging.** 23 raw-row clusters collapsed into 23 merged rows (mostly same-section IDEAS-*.md clusters
+that describe facets of one mechanism, e.g. the sealed-envelope-metric trio, or the nine
+`ARCHITECTURE.md §3c` "Stack:" lines), absorbing roughly 55 additional raw rows that would otherwise
+each have needed a standalone line. 24 raw rows were not emitted as rows at all because the identical or
 functionally-identical capability already has a scored row in `PARTIAL-nse-crypto-bot-final-ops.md` or
 `PARTIAL-notes-and-media-ops.md` — overwhelmingly the latter, since it mined the same `FEATURES.md
 §9/§10` sections this slice's `operations`/`security` rows also cite. Those 24 are listed once each
