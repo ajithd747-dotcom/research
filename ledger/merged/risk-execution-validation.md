@@ -356,7 +356,7 @@ each names a mechanism the postmortem shows failing on this project's own prior 
 | VX-007 | CPCV harness | validation | BUILT | P1 | src/validation/promotion_gate.py (composed CPCV harness). Was: "Finalists only — combinatorics explode" | FEATURES.md §8; research-corpus.md row 153 | See VX-004/VX-043/VX-044 prior-art |
 | VX-008 | PBO / CSCV | validation | BUILT | P1 | src/validation/backtest_overfitting.py probability_of_backtest_overfitting. Was: Probability of backtest overfitting via CPCV | FEATURES.md §8; DECISIONS.md §4; research-corpus.md row 155 | On pure noise, 8,800 configurations produced in-sample Sharpe 1.27 with 53% of OOS Sharpes negative — direct empirical evidence of the scale of the problem (multiple-comparisons-false-discovery-backtesting.md, notes-and-media.md row 130) |
 | VX-009 | BH-FDR on the promoted set | validation | BUILT | P1 | src/validation/backtest_overfitting.py benjamini_hochberg. Was: Bonferroni too blunt at large N | FEATURES.md §8; research-corpus.md row 157 | Bonferroni verdict: at N=10,000, α/N=0.000005 suppresses essentially everything including true positives (notes-and-media.md row 137) |
-| VX-010 | Hansen SPA at the promotion gate | validation | PLANNED | P2 | Not built. "Does the challenger beat the incumbent, corrected for variants tried" | FEATURES.md §8; research-corpus.md row 158 | White's Reality Check explicitly superseded — "Hansen's SPA strictly dominates it; running both is ceremony" (notes-and-media.md rows 131-132) |
+| VX-010 | Hansen SPA at the promotion gate | validation | BUILT | P2 | src/validation/superior_predictive_ability.py, benchmarked against the incumbent and cross-checked against arch.bootstrap.SPA. Was: "Does the challenger beat the incumbent, corrected for variants tried" | FEATURES.md §8; research-corpus.md row 158 | White's Reality Check explicitly superseded — "Hansen's SPA strictly dominates it; running both is ceremony" (notes-and-media.md rows 131-132) |
 | VX-011 | Bootstrapped max-drawdown distribution | validation | BUILT | P1 | src/risk/drawdown_distribution.py block_bootstrap_max_drawdowns + circuit_breaker_ladder. Was: Sets non-arbitrary circuit-breaker thresholds off bootstrapped p75-p90, not the single historical max | FEATURES.md §8; ARCHITECTURE.md §2; research-corpus.md row 159 | Prior-art precedent: "cheap, directly actionable, and underused relative to its value" (allocation-and-regime.md, notes-and-media.md row 111); block-bootstrap regime-conditional resampling preferred over GANs (research-corpus.md row 3) |
 | VX-012 | Shadow trading with alignment metrics | validation | PLANNED | P1 | Not built. ≥95% signal alignment, ≥90% execution-quality match, auto-halt after 3 misalignments | FEATURES.md §8; ARCHITECTURE.md §2; research-corpus.md row 160 | Concrete prior-art spec to port directly: RustyBT's `signal_tolerance_pct` (5%)+`max_misalignment_count`(halt after 3)+alignment-rate gate — "the strongest, most concretely implementable go/no-go gate found" (trading-monitoring-deployment-discipline.md, notes-and-media.md row 155) |
 | VX-013 | Regime-coverage tracker | validation | PLANNED | P1 | Not built. "[MISSED] — gate on having seen a drawdown and a vol spike, not elapsed days" | FEATURES.md §8; ARCHITECTURE.md §2; research-corpus.md row 161 | — |
@@ -680,3 +680,35 @@ capstone freeze-then-report-once protocol, now `holdout_custodian`.
 
 **VX-002's assessment holds.** No prior implementation enforces cumulative N
 structurally, and reading the two closest confirmed it — both count by convention.
+
+### Addendum 2 — VX-039 is not a donor, and a fourth flattering-direction defect
+
+`nse-crypto-bot-final/trading/strategy/generators/stats_gate.py`, this ledger's
+prior art for Hansen SPA/StepM, was fetched raw while building VX-010. Two problems:
+
+**It benchmarks against zero, not the incumbent.** `benchmark = pd.Series(np.zeros(T))`.
+That asks *"did this beat cash"* — which nearly every candidate passes in a rising
+market — rather than VX-010's *"does the challenger beat the incumbent"*, which is
+the comparison a promotion actually makes.
+
+**It fails open by declared design.** `except Exception: return all_ids`, documented
+as *"so it can only ever ADD strictness when statistically meaningful, never silently
+block the whole portfolio."* Coherent as a layered filter; the consequence is that a
+missing `arch` install, a NaN, or a library upgrade makes every candidate pass
+family-wise error control silently and permanently. `arch` was **not installed in
+this project's environment** before 2026-08-08 — precisely the condition under which
+that branch reports a full pass having tested nothing.
+
+**That is the fourth defect in this corpus failing in the flattering direction**,
+after the one-sided CPCV purge, the path-count-as-N deflation, and
+`antioverfit.py`'s `backtests_run: 0` on exception. The pattern is now strong enough
+to state as a heuristic: **when auditing this corpus, ask which way an error would
+move a promotion decision, and look there first.**
+
+Worth recording that the same day, the cross-check against `arch.bootstrap.SPA`
+caught an equivalent-shaped bug in *this project's own* new code: ω was the bootstrap
+SD of the mean rather than of √n·mean, which left Hansen's recentring threshold √n
+too tight and quietly degraded the consistent SPA toward the Reality Check it is
+meant to dominate. Invisible in the p-value's scale invariance; visible only against
+a reference implementation. **The corpus's failure mode is not exclusive to the
+corpus.**
