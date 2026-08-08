@@ -31,6 +31,7 @@ second strategy / portfolio · **P3** = scale · **—** = deliberately deferred
 | Per-feed data-quality score | P1 | **[MISSED]** — feed health as a first-class metric, not an assumption |
 | Gap detection + provenance-flagged backfill | P0 | Interpolated candles must be *labelled*, never silently blended |
 | Wash-trading discount on reported volume | P1 | **[MISSED]** — never size off raw aggregate volume |
+| **Stored bar price validity gate** | P0 | A price of zero is not a price. Binance emits placeholder frames on its trade stream (`p` "0", `q` "0", `X` "NA") and 746 of the first 1,671 bars ate them into `low` via `min()`, every one otherwise looking normal. Measured on what the reader serves, never on what a build reported |
 | **Bitemporal store** | P0 | Every row carries event, ingestion and availability time. Append-only — corrections are new rows, never overwrites |
 | **Clock-gated access API** | P0 | The only path to data, shared by backtest and live. Serves `availability_time <= sim_clock`; joins key on availability, never event time |
 
