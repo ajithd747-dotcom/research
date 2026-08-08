@@ -218,7 +218,7 @@ current `trading-system` repo, which today contains only `capture/`, `store/`, `
 | MD-023 | Backtest-vs-live divergence monitor (bug vs decay) | models | PLANNED | P1 | — | docs-extraction | |
 | MD-024 | Mechanism-health metric per strategy, declared at promotion — the fast decay signal | models | PLANNED | P1 | — | docs-extraction | |
 | MD-025 | Shadow trading with alignment metrics (≥95% signal, ≥90% execution match) | models | PLANNED | P1 | — | docs-extraction | |
-| MD-026 | Bootstrapped max-drawdown distribution for circuit-breaker thresholds | models | PLANNED | P1 | — | docs-extraction | |
+| MD-026 | Bootstrapped max-drawdown distribution for circuit-breaker thresholds | models | BUILT | P1 | — | docs-extraction | | **BUILT 2026-08-08: src/risk/drawdown_distribution.py**
 | MD-027 | CPCV harness (finalists only) | models | PLANNED | P1 | — | docs-extraction | Reuse `cpcv.py` from `nse-crypto-bot-final` (purge/embargo already correct per the docs-extraction note). |
 | MD-028 | BH-FDR correction on the promoted set | models | PLANNED | P1 | — | docs-extraction | *"Bonferroni too blunt at large N."* |
 | MD-029 | Third-party model weights treated as untrusted binaries (pin by content hash, prefer `safetensors`, sandboxed inference) | models | PLANNED | P1 | — | docs-extraction (FEATURES §10, ARCHITECTURE §3c Kronos note) | Directly aimed at Kronos/HuggingFace-style weight dependencies. |
