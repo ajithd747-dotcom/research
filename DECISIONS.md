@@ -530,13 +530,29 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
   "auto-halt armed" while `observe()` had no caller — the Rule 8 failure inside
   the board built to prevent it — now reads what it measures, and says
   `AUTO-HALT NOT ARMED` whenever nothing has fed the registry.
-- **The hour-boundary stall is bounded, not understood.** The binance recorder
-  died every hour on a keepalive timeout; it now survives, with a measured 6.0 s
-  stall at the rotation. Which change did it is not established — the funding
-  fan-out was moved to its own process AND the per-frame close budget was cut
-  from 25 to 4 AND the ping timeout was raised to 90 s. `binance-spot` carries
-  more writers and never had the problem, which rules out writer count and
-  leaves the mechanism open.
+- ~~**The hour-boundary stall is bounded, not understood.**~~ **EXPLAINED
+  2026-08-09.** The binance recorder died at every hour boundary on a keepalive
+  timeout while binance-spot crossed the same boundaries untouched. Measured:
+
+  | | recorder writers | frames/s | fsync at the boundary |
+  |---|---|---|---|
+  | binance | 575 | **2,415** | 2.5 s |
+  | binance-spot | 1,321 | 102 | 5.7 s |
+
+  Spot has more writers and more total fsync work, and never came close to
+  dying. **The discriminator is baseline loop saturation.** binance runs at 24×
+  the frame rate, so the rotation burst lands on a loop with almost no slack and
+  the keepalive's ping/pong finds no window; spot's loop is mostly idle and has
+  room throughout. Both the writer count and the total fsync work were red
+  herrings, and each had been a hypothesis.
+
+  It also explains the fix: the drain is paced PER FRAME, so cutting the budget
+  from 25 to 4 interleaves ~6× more frames between fsync slices. Measured after:
+  a 6.0 s stall at the rotation, and the recorder alive across 13:00 and 14:00.
+
+  Carried forward as a capacity fact rather than a defect: **binance sustains
+  ~8.7 million frames an hour through one process.** Anything added to that
+  event loop is added to a loop that is already nearly full.
 - ~~**The dollar-quote filter is not applied.**~~ **APPLIED 2026-08-09**, as the
   blocking prerequisite for Phase 4. `store.cli --symbols ALL` now filters, and
   refuses the build when no universe snapshot says what anything is priced in.
