@@ -306,6 +306,7 @@ LGPL-3.0, which §3c of `ARCHITECTURE.md` already flags as a constraint.
 | **Tax / accounting fill record** | P1 | **[MISSED]** — every fill, timestamped, in an exportable ledger. Painful to reconstruct after the fact |
 | **Jurisdiction / venue eligibility check** | P1 | **[MISSED]** — which venues are legally usable, and KYC tier limits |
 | Retention policy for proprietary code and data | P1 | Decides whether Fable 5 is usable at all |
+| **Reachability audit of every BUILT claim** | P0 | **[MISSED]** — four defects here have had one shape, all flattering: a claim written when the code was written and never re-checked against whether anything calls it. `tail_specs()`; DM-066's dollar-quote filter, BUILT while 539 non-dollar pairs went into bars; the wall's "auto-halt armed" with `observe()` uncalled; five breakers living in docstrings. Tests prove a function works, and a function nothing calls passes its tests forever — so the guard has to point at the *claims*. An `ast` import graph seeded from what scripts invoke, walked transitively so a dead subsystem cannot vouch for itself, cross-referenced against every BUILT/CLAIMED row. Ratcheted in CI in both directions |
 
 ## 13. Observability
 
