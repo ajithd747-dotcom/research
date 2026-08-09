@@ -387,7 +387,7 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
 3. ~~**Phase 0 — Truth**~~ — **DONE 2026-08-03.** Layer 0 raw capture and Layer 1
    bitemporal store + clock-gated reader are built, tested and running. Three
    venues supervised (binance, binance-spot, hyperliquid), restarting on boot.
-   The suite was 383 tests then and is **869 passed, 1 skipped** on 2026-08-09.
+   The suite was 383 tests then and is **1,035 passed, 1 skipped** on 2026-08-09.
 4. ~~**Phase 1 — Reality filter: the Cost Engine**~~ — **DONE, recorded late.**
    `src/cost/` holds `fee_schedule`, `fee_fetcher`, `round_trip_cost`,
    `funding_carry`, `spread_and_depth` and `secret_store`. Driven:
@@ -410,7 +410,7 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
    | Order-intent WAL | **driven** | `execution.order_intent_wal` used by `paper.prove_plumbing`; journals both legs of the demo round trip |
    | Venue health monitoring | **driven** | `capture_health` feeds the wall; silence and gap events recorded per venue |
    | Auto-halt per venue | **driven 2026-08-09** | `ops.venue_health_watch` feeds `observe()` once a minute via `scripts/health_supervisor.sh`, started by the GCE startup script. Registry stamps `last_observed_ns`; the wall grades on its age |
-   | Kill switch | **read 2026-08-09** | `prove_plumbing.run` refuses to start while `is_killed` is true, before anything is journalled. The **trip side has no trigger** — a hard cap needs capital — and the firewall half is impossible on this host: no `sudo`, no `iptables`, no `nft`, measured 2026-08-08 |
+   | Kill switch | **read and armed 2026-08-09** | `prove_plumbing.run` refuses to start while `is_killed` is true, before anything is journalled. The trip side now HAS its trigger: `risk.tail_cap.enforce` trips the watchdog on a live breach, which is the hard cap this line previously said did not exist. The firewall half remains impossible on this host: no `sudo`, no `iptables`, no `nft`, measured 2026-08-08 |
    | **State recovery on restart** | **built, cannot be driven yet** | `execution.state_recovery` compares the WAL, the local position model and **venue truth**. Venue truth needs an authenticated exchange session, which does not exist. The earlier note here said it "must run on recorder start" — wrong, it is not a recorder concern. It belongs at trading-engine start, in Phase 4 |
    | Key scoping | **not started** | no trading key exists yet; `cost.secret_store` is the only piece |
 
@@ -418,31 +418,74 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
    honest reading is that the ops floor is as built as it can be until Phase 4
    creates the things it protects.
 
-6. **Phase 3 — Search integrity** — **BUILT AS A LIBRARY, DRIVEN BY NOTHING.**
-   `validation/` holds `trial_registry`, `holdout_custodian`, `deflated_sharpe`,
-   `purged_cross_validation`, `backtest_overfitting`,
-   `superior_predictive_ability` and `promotion_gate`. Every one of them is
-   reached only through `promotion_gate`, and **`promotion_gate` has zero
-   callers**. `HoldoutCustodian` is accepted by `ClockGatedReader` as an optional
-   argument, and no caller passes one.
+6. ~~**Phase 3 — Search integrity**~~ — **DRIVEN 2026-08-09.** It read "built as
+   a library, driven by nothing" this morning: every module reached only through
+   `promotion_gate`, and `promotion_gate` reached by nobody.
 
-   This is the honest shape of a phase whose consumer does not exist yet — there
-   is no search loop to register trials against. It is recorded here so that
-   "Phase 3 is built" is never said without the second half of the sentence.
+   `validation.promotion_pipeline` is now its first caller, and
+   `validation.breadth` is the Trial Registry's. `HoldoutCustodian` is finally
+   passed to `ClockGatedReader` — it had been an accepted argument no caller
+   supplied, so the guard existed and guarded nothing. Unsupported claims fell
+   from eleven to one; only RX-005 remains, and it needs an authenticated
+   session.
+
+   Two defects the wiring exposed, both worth keeping:
+
+   - **The pipeline found a lookahead in its own candidate.** Pure noise scored
+     an observed Sharpe of 3.90, and the deflated Sharpe, MinBTL and
+     purge-retention gates all PASSED it — only PBO refused. Selecting the top
+     decile of a symmetric distribution and averaging returns a positive number
+     every day; it is a selection artefact of the return definition wearing the
+     shape of an edge. Fixed by shifting the signal, after which noise scores
+     0.04 and is refused, and a planted edge scores 1.01 and is promoted.
+   - **A fresh registry cannot deflate.** At N=1 the dispersion is zero and the
+     hurdle collapses, which is how noise cleared the DSR gate. The stack caught
+     it through SPA instead — the argument for several independent gates rather
+     than a better single one.
 
 7. ~~**Finish Phase 2 by wiring what is already written**~~ — **DONE 2026-08-09**
    for the two drivers that could exist, and the third turned out not to be a
    Phase 2 item at all. See the table in step 5.
-8. ← ***next*.** **Phase 4 — one family end to end** (carry), then Phase 5
-   portfolio, per `ARCHITECTURE.md` §3. Phase 3's library is complete and waiting
-   for exactly this: the first family through the promotion pipeline is what
-   gives `trial_registry`, `holdout_custodian` and `promotion_gate` a caller, and
-   what clears nine of the eleven baselined unsupported claims in one move.
+8. **Phase 4 — one family end to end** (carry) — **MACHINERY DONE, VERDICT
+   PENDING ON DATA.** Spec: `docs/superpowers/specs/2026-08-09-phase-4-carry-first-pass.md`.
 
-   Two Phase 2 leftovers travel with it rather than blocking it, because both are
-   gated on things Phase 4 creates: `state_recovery` needs an authenticated
-   session to reconcile against, and the watchdog's trip side needs capital to
-   have a hard cap over.
+   | Item of the definition of done | State |
+   |---|---|
+   | Breadth gate run and written down | **DONE** — `PASS, bursty flow` |
+   | A candidate through the full pipeline, gate returns a verdict | **DONE** — it refuses |
+   | `validation/` no longer reachable-by-nothing | **DONE** — 11 unsupported claims → 1 |
+   | Axis verdicts carried by the wall | **DONE** — and reading 9/65, NOT MEASURED |
+   | Reduced-size live under the §6 human gate | **not reached**, correctly |
+
+   **The breadth gate passed, and by more than §5a.4 feared.** Measured over
+   1,331,980 reconstructed funding rows across 850 symbols, six configurations:
+   effective breadth 46–82 independent bets against the 5–15 band the spec calls
+   a collapse, with mean pairwise correlation 0.03–0.06. Carry is not one BTC
+   factor wearing 850 hats.
+
+   **But triggers arrive 17–32× more unevenly than independent firing**, a fifth
+   of them in the busiest 5% of days. That is not a redesign — §5a.4's condition
+   is *cluster AND correlate*, and reading it as a disjunction was a bug in the
+   first draft of the verdict function. It IS a design constraint carried into
+   whatever is built next: §5a.5's acceptance threshold rising with opportunity
+   flow, and dry powder priced as a held option, are now empirical requirements
+   with a number behind them rather than precautions.
+
+   **What blocks a promotion is calendar time, not machinery.** The pipeline
+   reads the OBSERVED `funding` dataset, which began on 2026-08-08. The 582 days
+   of reconstructed history cannot substitute: its availability time is the
+   fetch, so every simulated clock in the past sees it empty — deliberately, and
+   that is what makes it safe for research and useless for a backtest.
+
+9. ← ***next*.** **Phase 5 — portfolio**, or wait for observed history. Both are
+   defensible and the choice has not been made. Phase 5's allocator, sizer and
+   correlation breaker have nothing to allocate between until a strategy is
+   promoted, but the drawdown ladder of VX-011 is derived and not yet acted on —
+   nothing cuts gross by a rung, because position sizing is Phase 5.
+
+   The two Phase 2 leftovers still travel with the first live strategy:
+   `state_recovery` needs an authenticated session to reconcile against, and key
+   scoping needs a key.
 
 ### Known gaps carried forward, not silently dropped
 
@@ -453,11 +496,19 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
 - **Liquidation feed unavailable** — see §12.6 and `binance-withheld-streams.md`.
   Binance withholds `forceOrder` from this host; the tile stays FAILING until a
   second venue or a paid feed supplies it.
-- **Auto-halt on venue degradation is not armed.** Unchanged since this line was
-  first written, and now pinned to a specific fact: `observe()` has no caller.
-  **The status wall currently asserts the opposite** — its venue-health tile
-  reads "auto-halt armed", which no probe measures. That is the Rule 8 failure
-  the board exists to prevent, in the board itself.
+- ~~**Auto-halt on venue degradation is not armed.**~~ **ARMED 2026-08-09.**
+  `ops.venue_health_watch` feeds the registry once a minute and the wall grades
+  on the observation's age rather than asserting anything. The tile that read
+  "auto-halt armed" while `observe()` had no caller — the Rule 8 failure inside
+  the board built to prevent it — now reads what it measures, and says
+  `AUTO-HALT NOT ARMED` whenever nothing has fed the registry.
+- **The hour-boundary stall is bounded, not understood.** The binance recorder
+  died every hour on a keepalive timeout; it now survives, with a measured 6.0 s
+  stall at the rotation. Which change did it is not established — the funding
+  fan-out was moved to its own process AND the per-frame close budget was cut
+  from 25 to 4 AND the ping timeout was raised to 90 s. `binance-spot` carries
+  more writers and never had the problem, which rules out writer count and
+  leaves the mechanism open.
 - ~~**The dollar-quote filter is not applied.**~~ **APPLIED 2026-08-09**, as the
   blocking prerequisite for Phase 4. `store.cli --symbols ALL` now filters, and
   refuses the build when no universe snapshot says what anything is priced in.
