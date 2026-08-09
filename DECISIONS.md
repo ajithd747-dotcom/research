@@ -458,12 +458,15 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
   **The status wall currently asserts the opposite** — its venue-health tile
   reads "auto-halt armed", which no probe measures. That is the Rule 8 failure
   the board exists to prevent, in the board itself.
-- **The dollar-quote filter is not applied.** `store.quote_currency` exposes
-  `dollar_quoted_symbols` and `partition_by_quote`; neither is called from
-  anywhere in `src/`, and `store.cli --symbols ALL` expands through
-  `captured_symbols`, which does not filter. Ledger row **DM-066 is marked BUILT
-  and should read PRIOR-ART-in-repo**: the code exists, the build path ignores
-  it, so non-dollar-quoted pairs are being built into bars.
+- ~~**The dollar-quote filter is not applied.**~~ **APPLIED 2026-08-09**, as the
+  blocking prerequisite for Phase 4. `store.cli --symbols ALL` now filters, and
+  refuses the build when no universe snapshot says what anything is priced in.
+  **What remains is the contamination already written:** 536 non-dollar symbols
+  hold **89,097 bars, 29.4% of binance-spot's**, in TRY, EUR, JPY, IDR, BRL, BTC
+  and ETH. The store is append-only and nothing retracts them, so **any consumer
+  choosing a universe must filter it** — `dollar_quoted_symbols` is the call.
+  This is a hard requirement on Phase 4's carry family, which ranks
+  cross-sectionally: a lira price and a USDT price are not comparable numbers.
 - **Unwired and awaiting a consumer**, listed so none of them is later
   rediscovered as new work: `risk.drawdown_distribution`,
   `paper.participation_calibration`, `cost.spread_and_depth`,
