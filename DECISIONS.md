@@ -400,18 +400,23 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
    a verifier rather than a live fetcher.
    *Not driven:* `cost.spread_and_depth`, which nothing calls.
 
-5. **Phase 2 — Ops floor** — **PART BUILT, and the unbuilt part is the halt.**
-   `ARCHITECTURE.md` §3 puts this before any capital, so the gap matters.
+5. **Phase 2 — Ops floor** — **DONE to the limit of what exists without a
+   trading key.** Updated 2026-08-09 after wiring; `ARCHITECTURE.md` §3 puts this
+   before any capital.
 
    | Component | State | Checked by |
    |---|---|---|
    | Rate-limit budgeter | **driven** | `ops.rate_budget` imported by `capture.cli` |
    | Order-intent WAL | **driven** | `execution.order_intent_wal` used by `paper.prove_plumbing`; journals both legs of the demo round trip |
    | Venue health monitoring | **driven** | `capture_health` feeds the wall; silence and gap events recorded per venue |
-   | **Auto-halt per venue** | **built, driven by nothing** | `VenueHaltRegistry.observe()` and `assess_venue()` have **zero callers**. Only `is_tradeable`/`halt_reason` are read, by the wall |
-   | **Watchdog + firewall kill** | **built, driven by nothing** | `ops.watchdog` has zero callers and no entry point in `scripts/` |
-   | **State recovery on restart** | **built, driven by nothing** | `execution.state_recovery` has zero callers |
+   | Auto-halt per venue | **driven 2026-08-09** | `ops.venue_health_watch` feeds `observe()` once a minute via `scripts/health_supervisor.sh`, started by the GCE startup script. Registry stamps `last_observed_ns`; the wall grades on its age |
+   | Kill switch | **read 2026-08-09** | `prove_plumbing.run` refuses to start while `is_killed` is true, before anything is journalled. The **trip side has no trigger** — a hard cap needs capital — and the firewall half is impossible on this host: no `sudo`, no `iptables`, no `nft`, measured 2026-08-08 |
+   | **State recovery on restart** | **built, cannot be driven yet** | `execution.state_recovery` compares the WAL, the local position model and **venue truth**. Venue truth needs an authenticated exchange session, which does not exist. The earlier note here said it "must run on recorder start" — wrong, it is not a recorder concern. It belongs at trading-engine start, in Phase 4 |
    | Key scoping | **not started** | no trading key exists yet; `cost.secret_store` is the only piece |
+
+   What is left in this phase is gated on capital and keys, not on work. The
+   honest reading is that the ops floor is as built as it can be until Phase 4
+   creates the things it protects.
 
 6. **Phase 3 — Search integrity** — **BUILT AS A LIBRARY, DRIVEN BY NOTHING.**
    `validation/` holds `trial_registry`, `holdout_custodian`, `deflated_sharpe`,
@@ -425,14 +430,19 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
    is no search loop to register trials against. It is recorded here so that
    "Phase 3 is built" is never said without the second half of the sentence.
 
-7. ← ***next*.** **Finish Phase 2 by wiring what is already written**, before
-   Phase 4's first strategy. Three drivers, no new libraries: something must call
-   `assess_venue`/`observe` on each health report, the watchdog must run as the
-   separate process its own contract specifies, and `state_recovery` must run on
-   recorder start. This is the cheapest phase left and it is the one
-   `ARCHITECTURE.md` §3 says precedes capital.
-8. **Phase 4 — one family end to end** (carry), then Phase 5 portfolio, per
-   `ARCHITECTURE.md` §3.
+7. ~~**Finish Phase 2 by wiring what is already written**~~ — **DONE 2026-08-09**
+   for the two drivers that could exist, and the third turned out not to be a
+   Phase 2 item at all. See the table in step 5.
+8. ← ***next*.** **Phase 4 — one family end to end** (carry), then Phase 5
+   portfolio, per `ARCHITECTURE.md` §3. Phase 3's library is complete and waiting
+   for exactly this: the first family through the promotion pipeline is what
+   gives `trial_registry`, `holdout_custodian` and `promotion_gate` a caller, and
+   what clears nine of the eleven baselined unsupported claims in one move.
+
+   Two Phase 2 leftovers travel with it rather than blocking it, because both are
+   gated on things Phase 4 creates: `state_recovery` needs an authenticated
+   session to reconcile against, and the watchdog's trip side needs capital to
+   have a hard cap over.
 
 ### Known gaps carried forward, not silently dropped
 
