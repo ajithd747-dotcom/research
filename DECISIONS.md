@@ -477,11 +477,39 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
    fetch, so every simulated clock in the past sees it empty — deliberately, and
    that is what makes it safe for research and useless for a backtest.
 
-9. ← ***next*.** **Phase 5 — portfolio**, or wait for observed history. Both are
-   defensible and the choice has not been made. Phase 5's allocator, sizer and
-   correlation breaker have nothing to allocate between until a strategy is
-   promoted, but the drawdown ladder of VX-011 is derived and not yet acted on —
-   nothing cuts gross by a rung, because position sizing is Phase 5.
+9. ← ***next*.** **WAIT FOR OBSERVED HISTORY.** Decided by the user
+   2026-08-09, over starting Phase 5. Nothing is built against a promotion until
+   the observed record can support one.
+
+   **How long the wait is, was itself a finding.** At N=21 trials MinBTL demands
+   6.1 years of history for a Sharpe-1.0 claim — because the gate counted
+   calendar days, pooling 850 symbols into one daily portfolio return. §5a.5
+   requires correcting on *both* axes, trial count **and effective sample
+   size**, and only the first was implemented. Corrected the same day, with the
+   multiplier measured on the data being scored rather than assumed:
+
+   | basis | Sharpe-1.0 at N=21 | Sharpe-1.5 |
+   |---|---|---|
+   | calendar days (as built) | 2,223 days | 988 days |
+   | × effective breadth 46 | **48 days** | **21 days** |
+
+   The correction makes promotion easier by roughly 58×, which is the direction
+   every defect this project has found failed in — so it was put to the user
+   rather than adopted, and the constraints are tested: it fails closed to
+   calendar days below 30 days of data, can never exceed the symbol count, and
+   is named in the gate's own words rather than folded into a year count.
+
+   **So the wait is weeks, not years** — and it is a wait on the OBSERVED record
+   only. The 582 days of reconstructed funding cannot shorten it, by design.
+
+   What the wait needs to survive: capture staying up. That is the whole risk of
+   waiting, and it is why the hour-boundary crash mattered more than it looked.
+
+   Phase 5's allocator, sizer and correlation breaker have nothing to allocate
+   between until a strategy is promoted — but the drawdown ladder of VX-011 is
+   derived and not yet acted on, because nothing cuts gross by a rung until
+   position sizing exists. That is the first real Phase 5 hook when the time
+   comes.
 
    The two Phase 2 leftovers still travel with the first live strategy:
    `state_recovery` needs an authenticated session to reconcile against, and key
