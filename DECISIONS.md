@@ -364,6 +364,18 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
 
 ## 13. Next actions (in order)
 
+> **Rewritten 2026-08-09 against what is on disk.** The previous version read
+> "Phase 1 — Cost Engine ← *next*" while the cost engine had already shipped, so
+> the one section whose job is to say what to do next had been wrong for six
+> days. Nothing had gone wrong; nobody had come back and edited it.
+>
+> Every state below was checked rather than recalled, and the check is named. The
+> distinction that matters here is **built** versus **driven**: this repo's
+> standing warning is `tail_specs()` — built, tested, called by nothing — so a
+> module no caller reaches is recorded as exactly that, never as done. The check
+> was `grep -rn` for each module's public names across `src/`, discounting
+> matches that turned out to be docstrings referring to it.
+
 1. ~~**Finish the Claude-usage work**~~ — **DONE 2026-08-01.** Enforcement layer is
    live (2 PreToolUse hooks + 11 deny rules, verified blocking); CLAUDE.md
    restructured 220 → 169 lines with Rule 2's operational half promoted to the
@@ -372,15 +384,55 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
 2. ~~**Write the full system spec**~~ — **SUPERSEDED 2026-08-03.** The spec was
    written per-layer as implementation plans instead of as one document, which is
    what `docs/superpowers/plans/` holds. `ARCHITECTURE.md` §3 is the system spec.
-3. ~~**Phase 0 — Truth**~~ — **DONE 2026-08-03.** Layer 0 raw capture (two venues,
-   supervised, restarts on boot) and Layer 1 bitemporal store + clock-gated reader
-   are built, tested and running. 383 tests green.
-4. **Phase 1 — Reality filter: the Cost Engine.** ← *next*. Plan written
-   2026-08-03: `docs/superpowers/plans/2026-08-03-cost-engine-reality-filter.md`.
-   Grounded on a measured constraint — Hyperliquid publishes its full fee schedule
-   unauthenticated, Binance does not (401 without an API key), so the engine is a
-   declared table plus a verifier rather than a pure live fetcher.
-5. **Phase 2 — Ops floor**, then Phase 3 search integrity, per `ARCHITECTURE.md` §3.
+3. ~~**Phase 0 — Truth**~~ — **DONE 2026-08-03.** Layer 0 raw capture and Layer 1
+   bitemporal store + clock-gated reader are built, tested and running. Three
+   venues supervised (binance, binance-spot, hyperliquid), restarting on boot.
+   The suite was 383 tests then and is **869 passed, 1 skipped** on 2026-08-09.
+4. ~~**Phase 1 — Reality filter: the Cost Engine**~~ — **DONE, recorded late.**
+   `src/cost/` holds `fee_schedule`, `fee_fetcher`, `round_trip_cost`,
+   `funding_carry`, `spread_and_depth` and `secret_store`. Driven:
+   `quote_round_trip_cost` is called by `cost.cli` and by `paper.prove_plumbing`,
+   and the wall tile *Cost engine — round-trip breakeven gate* reads OK against a
+   live fee verification. Built to the plan in
+   `docs/superpowers/plans/2026-08-03-cost-engine-reality-filter.md` and to its
+   measured constraint — Hyperliquid publishes its fee schedule unauthenticated,
+   Binance returns 401 without an API key, so the engine is a declared table plus
+   a verifier rather than a live fetcher.
+   *Not driven:* `cost.spread_and_depth`, which nothing calls.
+
+5. **Phase 2 — Ops floor** — **PART BUILT, and the unbuilt part is the halt.**
+   `ARCHITECTURE.md` §3 puts this before any capital, so the gap matters.
+
+   | Component | State | Checked by |
+   |---|---|---|
+   | Rate-limit budgeter | **driven** | `ops.rate_budget` imported by `capture.cli` |
+   | Order-intent WAL | **driven** | `execution.order_intent_wal` used by `paper.prove_plumbing`; journals both legs of the demo round trip |
+   | Venue health monitoring | **driven** | `capture_health` feeds the wall; silence and gap events recorded per venue |
+   | **Auto-halt per venue** | **built, driven by nothing** | `VenueHaltRegistry.observe()` and `assess_venue()` have **zero callers**. Only `is_tradeable`/`halt_reason` are read, by the wall |
+   | **Watchdog + firewall kill** | **built, driven by nothing** | `ops.watchdog` has zero callers and no entry point in `scripts/` |
+   | **State recovery on restart** | **built, driven by nothing** | `execution.state_recovery` has zero callers |
+   | Key scoping | **not started** | no trading key exists yet; `cost.secret_store` is the only piece |
+
+6. **Phase 3 — Search integrity** — **BUILT AS A LIBRARY, DRIVEN BY NOTHING.**
+   `validation/` holds `trial_registry`, `holdout_custodian`, `deflated_sharpe`,
+   `purged_cross_validation`, `backtest_overfitting`,
+   `superior_predictive_ability` and `promotion_gate`. Every one of them is
+   reached only through `promotion_gate`, and **`promotion_gate` has zero
+   callers**. `HoldoutCustodian` is accepted by `ClockGatedReader` as an optional
+   argument, and no caller passes one.
+
+   This is the honest shape of a phase whose consumer does not exist yet — there
+   is no search loop to register trials against. It is recorded here so that
+   "Phase 3 is built" is never said without the second half of the sentence.
+
+7. ← ***next*.** **Finish Phase 2 by wiring what is already written**, before
+   Phase 4's first strategy. Three drivers, no new libraries: something must call
+   `assess_venue`/`observe` on each health report, the watchdog must run as the
+   separate process its own contract specifies, and `state_recovery` must run on
+   recorder start. This is the cheapest phase left and it is the one
+   `ARCHITECTURE.md` §3 says precedes capital.
+8. **Phase 4 — one family end to end** (carry), then Phase 5 portfolio, per
+   `ARCHITECTURE.md` §3.
 
 ### Known gaps carried forward, not silently dropped
 
@@ -389,4 +441,20 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
   interpolated. Nothing currently backfills, so this is a prerequisite of the
   first thing that does, not an outstanding defect.
 - **Liquidation feed unavailable** — see §12.6 and `binance-withheld-streams.md`.
-- **Auto-halt on venue degradation** not implemented; health monitoring is live.
+  Binance withholds `forceOrder` from this host; the tile stays FAILING until a
+  second venue or a paid feed supplies it.
+- **Auto-halt on venue degradation is not armed.** Unchanged since this line was
+  first written, and now pinned to a specific fact: `observe()` has no caller.
+  **The status wall currently asserts the opposite** — its venue-health tile
+  reads "auto-halt armed", which no probe measures. That is the Rule 8 failure
+  the board exists to prevent, in the board itself.
+- **The dollar-quote filter is not applied.** `store.quote_currency` exposes
+  `dollar_quoted_symbols` and `partition_by_quote`; neither is called from
+  anywhere in `src/`, and `store.cli --symbols ALL` expands through
+  `captured_symbols`, which does not filter. Ledger row **DM-066 is marked BUILT
+  and should read PRIOR-ART-in-repo**: the code exists, the build path ignores
+  it, so non-dollar-quoted pairs are being built into bars.
+- **Unwired and awaiting a consumer**, listed so none of them is later
+  rediscovered as new work: `risk.drawdown_distribution`,
+  `paper.participation_calibration`, `cost.spread_and_depth`,
+  `store.correct_bars` (a one-shot, used once for the 746 poisoned bars).
