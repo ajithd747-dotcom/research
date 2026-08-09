@@ -257,6 +257,7 @@ LGPL-3.0, which §3c of `ARCHITECTURE.md` already flags as a constraint.
 | Sequence-gap detection on book streams | P0 | Heartbeat proves the socket, not the data |
 | Reconnect with full-jitter backoff, honour `Retry-After` | P0 | Bans scale to days and are per-IP |
 | Disk / memory / resource watchdog | P0 | Fail loud on disk-full or the WAL dies silently |
+| **Bounded writer descriptor pool** | P0 | **[MISSED]** — a writer holds two descriptors per open hour, so they scale with the universe, not with the code. 2,115 symbols needs over 4,000; the recorder inherited a soft `NOFILE` of 1024 from `sudo -H bash -lc`, died on `Errno 24` with exactly 1024 open, and was restarted into the same wall twenty times. Open hours are now an LRU pool sized from the process's own limit. Eviction costs compression, never frames |
 | **Cold-start behaviour** | P0 | **[MISSED]** — defined behaviour on first boot with no state |
 | **Disaster recovery runbook** | P1 | **[MISSED]** — VM dies mid-position: what recovers, in what order |
 | Tiered alerting (page / notify / log) | P1 | |
