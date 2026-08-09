@@ -521,9 +521,17 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
   *detection* is live and recorded, but a backfilled row is not yet labelled as
   interpolated. Nothing currently backfills, so this is a prerequisite of the
   first thing that does, not an outstanding defect.
-- **Liquidation feed unavailable** — see §12.6 and `binance-withheld-streams.md`.
-  Binance withholds `forceOrder` from this host; the tile stays FAILING until a
-  second venue or a paid feed supplies it.
+- ~~**Liquidation feed unavailable**~~ — **SUPPLIED 2026-08-09** by the second
+  venue §12.6 anticipated. `capture.venues.bybit_liquidation` records bybit's
+  market-wide `allLiquidation` stream (probed from this host before the module
+  was written: 16 frames in 90 s, against binance's permanent zero), supervised
+  and in the boot chain; the tile reads OK from measured frames. Binance's
+  `forceOrder` subscription stays, deliberately - a recovery would be noticed.
+  Two semantics corrections rode along, both measured on the first run: silence
+  on a market-wide event stream is judged for the whole feed, never per symbol
+  (800 of 805 symbols read "silent" in a 75-second run, byte-holders included),
+  and a silence event is superseded by any write that postdates it, so a quiet
+  spell no longer condemns a recovered stream until midnight.
 - ~~**Auto-halt on venue degradation is not armed.**~~ **ARMED 2026-08-09.**
   `ops.venue_health_watch` feeds the registry once a minute and the wall grades
   on the observation's age rather than asserting anything. The tile that read
