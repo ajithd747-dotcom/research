@@ -517,13 +517,53 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
 
 ### Known gaps carried forward, not silently dropped
 
-- **Bar builds are bounded by the busiest HOUR, not the busiest day** — and the
-  remaining bound is named. `store.trade_bars.BarAccumulator` folds trades into
-  bars as they are read (2026-08-10), after the binance build for 2026-08-09 was
-  OOM-killed at 20.3 GB and left 69 of 569 symbols unbuilt. Measured on TUTUSDT,
-  25,963,564 trades in one day: 12.0 GB killed → 4.09 GB completing. What is
-  still unfixed is `raw_writer.read_pair`, which materialises a whole hour file
-  before a single trade is examined; that is what the residual 4 GB is.
+- ~~**Bar builds are bounded by the busiest HOUR, not the busiest day**~~ —
+  **BOUNDED BY NEITHER, 2026-08-10.** The binance build for 2026-08-09 was
+  OOM-killed at 20.3 GB and left 69 of 569 symbols unbuilt. Two fixes, each
+  measured on the same symbol — TUTUSDT, 25,963,564 trades in one day:
+
+  | | peak | outcome |
+  |---|---|---|
+  | as found | 20.3 GB → 12.0 GB | OOM-killed |
+  | `BarAccumulator` folds trades as they are read | **4.09 GB** | completes |
+  | `iter_pair` streams the hour instead of holding it | **0.25 GB** | completes |
+
+  `read_pair` returned `list[tuple[str, IndexEntry]]` — every payload string and
+  an object per frame, materialised before one trade was examined. On the single
+  worst hour file, 5,634,232 frames: **3.98 GB held against 0.14 GB streamed,
+  and streaming read it FASTER** (37.7 s against 48.6 s).
+
+  **The bars are identical.** All 856 for that day, compared through the
+  clock-gated reader against what production already held — every open, high,
+  low, close, volume and trade count equal. A cheaper reader that disagreed
+  about damage would have traded an OOM for a quietly wrong store, so the
+  streaming reader keeps `read_pair`'s verdicts and their PRECEDENCE: a pair
+  that is both mis-paired and unequal in length reports the length mismatch,
+  because that is the one naming `reconcile_pair`. A stream meets the bad `n`
+  first, so it drains both files before deciding — paid only on the failing
+  path.
+
+  `read_pair` stays for the repair path, which needs the one thing a stream has
+  already given away: the intact prefix on `TruncatedFrameFile`. The streaming
+  reader reports the COUNT instead and says it is not retained, so an empty
+  `recovered_lines` cannot be misread as "nothing survived".
+
+  What remains is a property the next caller must design around rather than a
+  bound: the refusal now arrives after the frames ahead of the damage have been
+  consumed. Safe because every build appends to the store AFTER its read loop —
+  anything that writes as it reads must not use this reader.
+- **The live startup script drifts from the repo, and the drift is silent until
+  a reboot.** Found 2026-08-10, the second time: `bars_supervisor.sh` was split
+  out at 08:15, the box rebooted at 09:53, and the GCE **metadata** copy — which
+  is the one that runs — had never been updated. Bars stopped building and
+  nothing said so; `ps` showed eight supervisors where there should have been
+  nine. Re-installed with `gcloud compute instances add-metadata
+  --metadata-from-file startup-script=scripts/gce_startup_script.sh` and
+  verified by diffing the metadata back against the repo file.
+
+  The repo file is a COPY. Editing it changes nothing that runs, and a reboot is
+  what turns that into lost data — so a supervisor added to it is not added
+  until the metadata is installed and diffed back.
 - ~~**Provenance-flagged backfill** (Phase 0's last item)~~ — **BUILT 2026-08-10**,
   and built with a real backfill behind it because this entry made that the
   condition. `store.bar_backfill` fetches binance klines into
