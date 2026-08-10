@@ -3,3 +3,7 @@
 # state into the design history, where it would read as a fact about the project
 # rather than about one moment.
 status-wall.html
+
+# Written by the same pass, from the same probe results, and just as much a
+# snapshot of one moment: phase rows counting tiles lit today.
+build-progress.html
