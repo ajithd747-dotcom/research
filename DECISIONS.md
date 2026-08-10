@@ -517,10 +517,17 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
 
 ### Known gaps carried forward, not silently dropped
 
-- **Provenance-flagged backfill** (Phase 0's last item) is not implemented — gap
-  *detection* is live and recorded, but a backfilled row is not yet labelled as
-  interpolated. Nothing currently backfills, so this is a prerequisite of the
-  first thing that does, not an outstanding defect.
+- ~~**Provenance-flagged backfill** (Phase 0's last item)~~ — **BUILT 2026-08-10**,
+  and built with a real backfill behind it because this entry made that the
+  condition. `store.bar_backfill` fetches binance klines into
+  `bars_reconstructed_<interval>ns` — beside `bars_*`, never inside it — with
+  `is_reconstructed` on every row and **availability stamped at the fetch, not
+  the bar close**, so `read_as_of` at any past clock returns nothing and a
+  backtest cannot consume one by accident. The first backfill filled a real
+  hole: capture stopped 2026-08-09T19:51Z and returned 04:26Z, and observed
+  BTCUSDT bars end at exactly 19:51. What a reconstructed bar is worth is
+  measured rather than assumed — against 220 overlapping observed bars, 217
+  closes identical, median 0.0000 bps apart, p99 0.0124.
 - ~~**Liquidation feed unavailable**~~ — **SUPPLIED 2026-08-09** by the second
   venue §12.6 anticipated. `capture.venues.bybit_liquidation` records bybit's
   market-wide `allLiquidation` stream (probed from this host before the module
