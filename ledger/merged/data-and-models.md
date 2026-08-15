@@ -133,7 +133,7 @@ current `trading-system` repo, which today contains only `capture/`, `store/`, `
 | FE-006 | Absorption detection (delta vs price-hold) | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | |
 | FE-007 | Fractional differentiation | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | Via `fracdiff` (BSD-3) — see FE-031 (mlfinlab DECLINED as the alternative source). |
 | FE-008 | Triple-barrier labelling | feature-engineering | CLAIMED | P1 | — | research-corpus, docs-extraction | Barrier width itself goes through the Trial Registry as a hyperparameter. |
-| FE-009 | Sample uniqueness + sequential bootstrap | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | Overlapping triple-barrier labels violate IID. |
+| FE-009 | Sample uniqueness + sequential bootstrap | feature-engineering | CLAIMED | P1 | — | research-corpus, docs-extraction | Overlapping triple-barrier labels violate IID. |
 | FE-010 | Time-of-day / day-of-week / funding-hour effects | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | |
 | FE-011 | Volatility-regime decile — feature only, never a gate | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | See FE-032 (standalone regime detector with veto power, DECLINED) — this constraint is the direct consequence of that decline. |
 | FE-012 | Universal, parameter-free setup definitions across the symbol universe | feature-engineering | PLANNED | — | — | docs-extraction (goal-doc §5a.5) | Per-symbol variation only via normalisation (z-score/percentile vs own history), never fitted per-symbol parameters — flagged in the goal doc as *"the single most dangerous thing that could be implemented here"* if violated. |
