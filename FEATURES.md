@@ -261,6 +261,7 @@ LGPL-3.0, which §3c of `ARCHITECTURE.md` already flags as a constraint.
 | Disk / memory / resource watchdog | P0 | Fail loud on disk-full or the WAL dies silently |
 | **Bounded writer descriptor pool** | P0 | **[MISSED]** — a writer holds two descriptors per open hour, so they scale with the universe, not with the code. 2,115 symbols needs over 4,000; the recorder inherited a soft `NOFILE` of 1024 from `sudo -H bash -lc`, died on `Errno 24` with exactly 1024 open, and was restarted into the same wall twenty times. Open hours are now an LRU pool sized from the process's own limit. Eviction costs compression, never frames |
 | **Cold-start behaviour** | P0 | **[MISSED]** — defined behaviour on first boot with no state |
+| **Outage detection — the system's record of its own absence** | P0 | **[MISSED]** — this VM was off 2026-08-10 12:53 → 2026-08-15 17:13 and *nothing checked*: capture wrote nothing, the raw archive skips five days, and every board went on serving a green page dated 08-10. A watcher on the box cannot report that the box is off, so it stamps liveness and records the bounded gap on its first tick back — and the boards age themselves in the reader's browser, because a server-rendered age cannot cover the case where the server is what stopped |
 | **Disaster recovery runbook** | P1 | **[MISSED]** — VM dies mid-position: what recovers, in what order |
 | Tiered alerting (page / notify / log) | P1 | |
 | Structured audit log of every decision | P1 | |
