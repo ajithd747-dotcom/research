@@ -628,3 +628,95 @@ NautilusTrader caveat: pre-v2.0 — do not run `develop`/`nightly` against live 
   rediscovered as new work: `risk.drawdown_distribution`,
   `paper.participation_calibration`, `cost.spread_and_depth`,
   `store.correct_bars` (a one-shot, used once for the 746 poisoned bars).
+
+---
+
+## 14. Paper trading started — 2026-08-15
+
+**The ordering in `2026-08-09-full-build-master-plan.md` was reversed by the user
+on 2026-08-15.** That plan recorded the decision to complete *"every plan, idea,
+feature and goal"* before paper trading began, with the paper-engine-first
+alternative explicitly put and declined. Asked again — after five days in which
+nothing ran — the user chose paper next. Recorded here rather than edited into
+the plan, because the plan is the record of what was decided *then*.
+
+Phase J now reads **RUNNING** on the build-progress board, graded on the engine's
+own heartbeat and its age.
+
+### What was built
+
+`paper.position_book`, `paper.paper_broker`, `paper.market_replay`,
+`paper.forward_engine`, `paper.forward_journal` and `scripts/paper_supervisor.sh`.
+The supervisor is also what made the subsystem **reachable**: until it existed
+those modules imported each other with nothing running any of them, and every one
+of their axis verdicts carried an honest DEPTH fail. `RX-005` left the
+unsupported-claims baseline at the same moment — `execution.state_recovery`
+finally has a local position source to reconcile against.
+
+### Three defects the tests did not find and the first live run did
+
+1. **Every intent expired before it could be sent.** `created_at_ns` was stamped
+   with the *bar's* event time, so a 60-second validity window had closed before
+   the wall clock ever saw it: 3,494 events fed, **0 submitted**, and the engine
+   read as idle rather than blocked. The signal is computed *now*; the age of the
+   data behind it is a separate question `features.staleness` already carries per
+   value.
+2. **Poll 2 reported 3,494 corrections where nothing had been corrected.** The
+   dedupe held only keys, so a re-read of a row already fed was indistinguishable
+   from a genuine correction, and the counter meant to expose a real problem
+   became noise proportional to uptime. It now holds the availability time each
+   key was fed at; only a *later* one is a correction.
+3. **A fresh journal replayed the whole archive as though it were live.** On
+   BTCUSDT alone, 3,494 archived bars in one poll produced 1,074 fills against
+   prices days old — every one of which would have entered the forward journal as
+   a forward result. `prime()` marks the archive seen without trading it. On the
+   real start: **1,523,537 events primed, 0 traded.**
+
+And one in the board built to prevent exactly this: `probe_forward_paper` globbed
+`*.ndjson` and would have reported Phase J RUNNING off `restarts.ndjson` — the
+supervisor's own log, written once at startup and never again. A tile that goes
+green because a process started once, and stays green after it dies, is the Rule
+8 failure sitting inside the Rule 8 board.
+
+### The bar cadence was a supervisor property, not a store property
+
+The engine ran 63 polls and traded nothing, and the reason looked structural:
+bars existed only for closed **days**, so "forward" trading advanced once per 24
+hours. It was not structural. `store.cli` already skips an hour a live writer
+holds — in the day's own folder as well as the lookahead — and names every
+skipped hour in the snapshot id, precisely so a later pass with more hours closed
+is a *new snapshot that appends*. `scripts/bars_supervisor.sh` had simply never
+asked for today.
+
+Measured, not reasoned: building 2026-08-15 at 19:02 produced 88 BTCUSDT bars and
+skipped live hour 19 by name; the engine fed exactly those 88 on its next poll
+and produced **43 fills**. With the intraday pass wired in across four venues:
+**160 fills** on binance BTCUSDT and hyperliquid BTC/ETH/SOL.
+
+The intraday pass is bounded to core symbols. It rebuilds today from hour 0 each
+run — the day partition is written whole — so cost grows through the day and a
+universe-wide version would be quadratic in a way that eats its own hour.
+
+### What is running is not a strategy
+
+`plumbing-momentum` rests a BUY at the previous close. `makes_edge_claim` is
+**false** and is written onto every fill row rather than into a header, the wall
+tile reads **PARTIAL rather than OK** while it runs, and `--strategy` has no
+default so it cannot be run without being named. Participation is **uncalibrated**
+— no receipt exists, its tile reads NOT MEASURED, and every fill carries
+`uncalibrated=true`. Nothing here may be promoted.
+
+### The system now has a concept of its own absence
+
+`ops.liveness_ledger` stamps liveness on the health supervisor's 60s tick and
+records the hole on its first tick back. **A watcher on the box cannot report that
+the box is off** — that limit is designed around, not hidden. The 2026-08-10 →
+2026-08-15 gap is filed as **124.3h**, cited to `boot.log`'s two boot lines and
+the missing raw dates, and labelled `is_reconstructed` because the module did not
+exist while it happened — following `store.bar_backfill`, where a reconstruction
+sits beside observations and never inside them.
+
+`statuswall.staleness_banner` makes each board age itself in the **reader's**
+browser, because a server-rendered "generated 5 days ago" is impossible for the
+case that matters: the server that would render it is the one that stopped. Past
+the threshold it names the *generator*, not the page age.
