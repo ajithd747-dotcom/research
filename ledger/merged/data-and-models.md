@@ -132,7 +132,7 @@ current `trading-system` repo, which today contains only `capture/`, `store/`, `
 | FE-005 | Depth-weighted order-flow imbalance (never level-1) | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | Level-1 OBI is separately DECLINED (FE-030) — 31% of large orders in a Dec-2024 sample could profitably spoof it. |
 | FE-006 | Absorption detection (delta vs price-hold) | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | |
 | FE-007 | Fractional differentiation | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | Via `fracdiff` (BSD-3) — see FE-031 (mlfinlab DECLINED as the alternative source). |
-| FE-008 | Triple-barrier labelling | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | Barrier width itself goes through the Trial Registry as a hyperparameter. |
+| FE-008 | Triple-barrier labelling | feature-engineering | CLAIMED | P1 | — | research-corpus, docs-extraction | Barrier width itself goes through the Trial Registry as a hyperparameter. |
 | FE-009 | Sample uniqueness + sequential bootstrap | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | Overlapping triple-barrier labels violate IID. |
 | FE-010 | Time-of-day / day-of-week / funding-hour effects | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | |
 | FE-011 | Volatility-regime decile — feature only, never a gate | feature-engineering | PLANNED | P1 | — | research-corpus, docs-extraction | See FE-032 (standalone regime detector with veto power, DECLINED) — this constraint is the direct consequence of that decline. |
