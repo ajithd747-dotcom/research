@@ -196,7 +196,7 @@ current `trading-system` repo, which today contains only `capture/`, `store/`, `
 
 | # | Requirement | Category | Status | Phase | Evidence / satisfying module | Sources | Notes |
 |---|---|---|---|---|---|---|---|
-| MD-001 | Linear / naive baseline, mandatory before promotion | models | PLANNED | P0 | — | research-corpus, docs-extraction | Cheapest overfitting check that exists; every model must beat it. |
+| MD-001 | Linear / naive baseline, mandatory before promotion | models | CLAIMED | P0 | — | research-corpus, docs-extraction | Cheapest overfitting check that exists; every model must beat it. |
 | MD-002 | Trial Registry, cumulative N enforced | models | PLANNED | P0 | — | docs-extraction (FEATURES §8, ARCHITECTURE §1 Layer 2) | |
 | MD-003 | Holdout Custodian, refuses queries until freeze | models | PLANNED | P0 | — | docs-extraction | |
 | MD-004 | Purge + embargo, configured per family | models | PLANNED | P0 | — | docs-extraction | |
