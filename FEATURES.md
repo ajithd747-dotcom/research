@@ -147,6 +147,8 @@ one-layer linear model on standard forecasting benchmarks.
 | Smart order routing across venues | P3 | |
 | Iceberg / hidden orders | P3 | |
 | TWAP / VWAP / Almgren-Chriss | — | Clips are thousands of times below where slicing helps |
+| **Paper execution engine — forward journal, both accountings** | P0 | The paper broker is a *transport* for the order-intent WAL, not a simulator beside it, so paper exercises the code a live transport would run. Every fill is scored under **both** maker-optimistic and taker-pessimistic accounting and promotion gates on the pessimistic one; the gap between them is the realized-vs-assumed fill metric. Running as a supervised process since 2026-08-15 |
+| **Participation rate calibrated from the depth archive** | P1 | **[MISSED]** — the share of printed volume a resting order would actually receive. An invented rate is the single cheapest way to manufacture edge, so it is measured from resting size at the touch and carried with `n_observations`; absent a receipt every fill is flagged `uncalibrated` and no tier-2 promotion may read it |
 
 ## 5b. Options layer (P3 — required before any options position)
 
