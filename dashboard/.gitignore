@@ -7,3 +7,11 @@ status-wall.html
 # Written by the same pass, from the same probe results, and just as much a
 # snapshot of one moment: phase rows counting tiles lit today.
 build-progress.html
+
+# Written by the same pass from the forward engine's fill journal: open
+# positions and closed round trips as they stood at one instant. Added
+# 2026-08-16 after it was committed by accident - this ignore list names files
+# one by one, so every new generated board has to be added here, and the one
+# that is forgotten is the one that gets committed. That is the cost of an
+# ignore-list over an allowlist, and it is recorded rather than papered over.
+blotter.html
