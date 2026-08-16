@@ -35,6 +35,23 @@ PRACTICE_STATUSES = ["ADOPTED", "CANDIDATE"]
 
 ALL_STATUSES = STATUSES + PRACTICE_STATUSES
 
+# Spellings that mean an existing status under a different word. Found 2026-08-16:
+# 22 rows across the slices read BUILT, which is CLAIMED's meaning exactly - "a
+# named module in the current project satisfies it", and every one of them cites a
+# `src/` path. The parser did not know the word, so it fell through to
+# `unclassified`, and the index reported those 22 rows under a line that says they
+# "sit in tables whose layout carries the status in a section heading rather than a
+# column". That line was false about them: they carry a status column, filled in,
+# with a synonym.
+#
+# Normalised here rather than by editing the 22 rows, because one of them reads
+# BUILT (derived; not yet acted on) and that qualification is load-bearing - VX-011
+# says in its own note that it "should not read plain BUILT until something acts on
+# a rung". Rewriting the cells would have to preserve that, and a parser that knows
+# one extra word is the smaller change. The rows themselves are the place to unify
+# the spelling (Rule 7: one concept, one word) and that is a separate sweep.
+STATUS_SYNONYMS = {"BUILT": "CLAIMED"}
+
 # What a complete ledger looks like. A slice absent from disk is a hole in the
 # anti-forgetting mechanism, so it must be named rather than inferred from silence.
 EXPECTED_SLICES = {
@@ -86,6 +103,7 @@ def classify_row(cells: list[str]) -> str | None:
         token = cell.replace("**", "").strip()
         # Some cells read "CLAIMED (partial)" or "DECLINED as primary".
         head = token.split("(")[0].split(" as ")[0].strip()
+        head = STATUS_SYNONYMS.get(head, head)
         if head in ALL_STATUSES:
             return head
     return None
@@ -214,6 +232,12 @@ def render(summaries: list[dict], missing: list[str], raw_rows: int) -> str:
     add("")
     add("**Unclassified rows are not missing rows.** They sit in tables whose layout carries the")
     add("status in a section heading rather than a column — most of them UNRESOLVED lists.")
+    add("")
+    add("**CLAIMED counts rows spelled `BUILT` too.** They are the same claim — a named module")
+    add("in the current project satisfies it — and every `BUILT` row cites a `src/` path. Until")
+    add("2026-08-16 the parser did not know the word, so 22 satisfied rows were reported as")
+    add("unclassified and the CLAIMED total read 22 low. The rows keep their own wording, one of")
+    add("them deliberately (`VX-011`, *BUILT (derived; not yet acted on)*).")
     add("")
     return "\n".join(out) + "\n"
 
