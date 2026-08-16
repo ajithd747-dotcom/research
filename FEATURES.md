@@ -322,6 +322,7 @@ LGPL-3.0, which §3c of `ARCHITECTURE.md` already flags as a constraint.
 | Latency histograms per venue and endpoint | P1 | |
 | Fill-quality metrics vs assumed | P1 | The number that predicts live degradation |
 | Cost breakdown dashboard | P2 | |
+| **Paper blotter — open positions and closed round trips** | P1 | Added 2026-08-16 at the user's request — *"when will I see paper trades like open trades and closed trades"*. The fills were already journalled and nothing rendered them. Every position and every round trip is priced under **both** accountings, because a blotter reporting one figure is choosing which, and the one that gets chosen is the flattering one. A journal with no sells reports that a round trip is **impossible**, never as an empty table |
 | Strategy health board | P2 | |
 | Ultra-visual animated node dashboard | P3 | Produces zero alpha; scales with node count |
 
