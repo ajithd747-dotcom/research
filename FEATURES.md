@@ -33,6 +33,7 @@ second strategy / portfolio · **P3** = scale · **—** = deliberately deferred
 | Wash-trading discount on reported volume | P1 | **[MISSED]** — never size off raw aggregate volume |
 | **Stored bar price validity gate** | P0 | A price of zero is not a price. Binance emits placeholder frames on its trade stream (`p` "0", `q` "0", `X` "NA") and 746 of the first 1,671 bars ate them into `low` via `min()`, every one otherwise looking normal. Measured on what the reader serves, never on what a build reported |
 | **Bitemporal store** | P0 | Every row carries event, ingestion and availability time. Append-only — corrections are new rows, never overwrites |
+| **Universe watch list across spot, perp and dated-futures segments** | P1 | Added 2026-08-16 at the user's instruction — *"keep an eye on all the universe symbols in all three segments"*. A **watch list**, not a tradeable set: a symbol that goes quiet is kept and marked, because a list that drops what it stopped seeing cannot answer whether the instrument is gone or the feed is. Segment comes from which dataset carries the key, never from parsing a venue or symbol name |
 | **Clock-gated access API** | P0 | The only path to data, shared by backtest and live. Serves `availability_time <= sim_clock`; joins key on availability, never event time |
 
 ## 2. Feature engineering
@@ -211,6 +212,7 @@ LGPL-3.0, which §3c of `ARCHITECTURE.md` already flags as a constraint.
 | Auto-flatten on venue degradation | P1 | |
 | Concentration limit per asset | P2 | |
 | **Deployment freeze windows** | P1 | **[MISSED]** — never deploy during high vol or near funding settlement |
+| **Adaptive paper tail cap, bounded** | P1 | Added 2026-08-16 at the user's instruction — paper is for practising, so its ceiling adapts to measured drawdowns. **Paper only**: the live ceiling stays the user's and §6 still says no code raises it. Bounded both ways, because a limit derived from recent realised risk rises exactly when risk rises |
 | Post-trade reconciliation vs exchange truth | P0 | |
 
 ## 7. Portfolio
