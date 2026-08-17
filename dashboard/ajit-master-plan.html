@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>AJIT MASTER PLAN — measured</title>
+<style>
+  :root { color-scheme: dark; --ground:#080D11; --panel:#0F171D; --rule:#1E2C35;
+    --ink:#E8F0F4; --ink-2:#93A7B3; --ink-3:#61737E; --lit:#3FD68A; --dark:#26343D;
+    --warn:#E8B04F; --fail:#E85A4F;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; }
+  @media (prefers-color-scheme: light) {
+    :root { color-scheme: light; --ground:#EDF1F4; --panel:#FFFFFF; --rule:#D6DFE5;
+      --ink:#0B1418; --ink-2:#465761; --ink-3:#6D808B; --lit:#12764A; --dark:#C9D4DB;
+      --warn:#9A6B0F; --fail:#B3261E; } }
+  * { box-sizing:border-box; } body { margin:0; background:var(--ground); color:var(--ink);
+    font-family:var(--mono); padding:clamp(16px,4vw,40px); }
+  h1 { font-size:clamp(18px,4vw,26px); margin:0 0 4px; }
+  .sub { color:var(--ink-3); font-size:12px; margin-bottom:24px; }
+  table { border-collapse:collapse; width:100%; max-width:880px; }
+  th,td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--rule);
+    font-size:13px; vertical-align:top; }
+  th { color:var(--ink-3); font-size:11px; letter-spacing:.14em; text-transform:uppercase; }
+  .bar { display:flex; height:10px; border-radius:5px; overflow:hidden;
+    background:var(--dark); min-width:160px; }
+  .bar span { background:var(--lit); }
+  .n { color:var(--ink-2); white-space:nowrap; }
+  .zero { color:var(--ink-3); }
+  .fail { color:var(--fail); } .warn { color:var(--warn); } .lit { color:var(--lit); }
+  .foot { margin-top:24px; color:var(--ink-3); font-size:11px; max-width:880px; }
+</style></head><body>
+<h1>AJIT MASTER PLAN</h1>
+
+<div id="staleness" class="staleness staleness-unknown"
+     data-generated="1786961474"
+     data-stale-after="900">
+  <!-- Server-rendered fallback. If the script does not run, this is what shows:
+       it names the generation instant and admits the age is unknown, which is
+       the honest state for a page that cannot measure itself. It is deliberately
+       NOT the healthy styling. -->
+  AGE UNKNOWN — this page was generated at
+  <span class="staleness-when">2026-08-17 10:11 UTC</span> and could not measure how long
+  ago that was
+</div>
+<style>
+  .staleness { display:block; margin:0 0 18px; padding:10px 14px;
+    border-radius:8px; font-size:12px; letter-spacing:.04em;
+    border:1px solid var(--rule); background:var(--panel); color:var(--ink-2); }
+  .staleness-unknown { border-color:var(--warn); color:var(--warn); }
+  .staleness-fresh { border-color:var(--rule); color:var(--ink-3); }
+  .staleness-stale { border-color:var(--fail); color:var(--fail);
+    font-weight:600; }
+</style>
+<script>
+(function () {
+  var node = document.getElementById('staleness');
+  if (!node) return;
+  var generated = parseInt(node.getAttribute('data-generated'), 10);
+  var staleAfter = parseInt(node.getAttribute('data-stale-after'), 10);
+  if (!generated) return;
+
+  function describe(seconds) {
+    if (seconds < 90) return Math.max(0, Math.round(seconds)) + 's';
+    if (seconds < 5400) return Math.round(seconds / 60) + ' min';
+    if (seconds < 172800) return (seconds / 3600).toFixed(1) + 'h';
+    return (seconds / 86400).toFixed(1) + ' days';
+  }
+
+  function paint() {
+    var age = (Date.now() / 1000) - generated;
+    node.className = 'staleness ' + (age > staleAfter ? 'staleness-stale'
+                                                      : 'staleness-fresh');
+    if (age > staleAfter) {
+      // Named as a broken generator rather than as an old page, because that is
+      // the thing to go and fix, and it is what nobody worked out for five days.
+      node.textContent = 'STALE — this board is ' + describe(age) + ' old. '
+        + 'The generator has stopped writing it; what you are reading is not '
+        + 'the current state of the system.';
+    } else {
+      node.textContent = 'live — regenerated ' + describe(age) + ' ago';
+    }
+  }
+
+  paint();
+  // Repainted while the tab sits open, so a board left on a second monitor goes
+  // red by itself instead of staying green until someone reloads it.
+  setInterval(paint, 15000);
+})();
+</script>
+
+<div class='sub'>ACTIVE SLICE <b>slice-0</b> · NEXT ROW <b>SL-01</b> — copy the store to GCS beside the raw tape on every offload pass</div>
+<table>
+<tr><th>Slice</th><th>Scope</th><th></th><th>Built</th></tr>
+<tr><td>slice-0 ←</td><td>FOUNDATION &amp; GOVERNANCE</td><td><div class='bar'><span style='width:46%'></span></div></td><td class='n warn'>6 / 13</td></tr><tr><td>spot-bot</td><td>SPOT BOT — inventory pending review</td><td><div class='bar'><span style='width:0%'></span></div></td><td class='n zero'>0 / 0</td></tr><tr><td>perp-bot</td><td>PERP BOT — inventory pending review</td><td><div class='bar'><span style='width:0%'></span></div></td><td class='n zero'>0 / 0</td></tr><tr><td>dated-bot</td><td>DATED FUTURES BOT — inventory pending review</td><td><div class='bar'><span style='width:0%'></span></div></td><td class='n zero'>0 / 0</td></tr><tr><td>options-bot</td><td>OPTIONS BOT — inventory pending review</td><td><div class='bar'><span style='width:0%'></span></div></td><td class='n zero'>0 / 0</td></tr><tr><td>slice-5</td><td>ALLOCATOR, PORTFOLIO RISK, BRAINS 2-3 — inventory pending review</td><td><div class='bar'><span style='width:0%'></span></div></td><td class='n zero'>0 / 0</td></tr>
+</table>
+<h2>Rows</h2>
+<table>
+<tr><th>Row</th><th>Does</th><th>Satisfies</th><th>State</th><th>Detail</th></tr>
+<tr><td>SL-01</td><td>copy the store to GCS beside the raw tape on every offload pass</td><td>RL-020</td><td class='n warn'>DEGRADED</td><td class='n'>the store prefix is absent from the bucket - the observed funding record exists on one disk only</td></tr><tr><td>SL-02</td><td>make every session reach the same project memory whatever its directory</td><td>RL-016</td><td class='n lit'>OK</td><td class='n'>14 memories reachable from either key</td></tr><tr><td>SL-03</td><td>load and validate the rulings register, refusing a typed status</td><td>RL-021 RL-016</td><td class='n lit'>OK</td><td class='n'>21 rulings parse, 21 scoped</td></tr><tr><td>SL-04</td><td>parse the spine into slices and eight-field rows, refusing a typed state</td><td>RL-021 RL-007</td><td class='n lit'>OK</td><td class='n'>6 slices, 13 rows, 5 slice(s) with no rows yet</td></tr><tr><td>SL-05</td><td>compute per-scope coverage so partial delivery reads as a fraction</td><td>RL-021 RL-009 RL-019</td><td class='n warn'>PARTIAL</td><td class='n'>9/21 rulings covered; short: RL-002 0/1, RL-003 0/1, RL-004 0/12, RL-006 0/4, RL-008 0/1, RL-009 0/4</td></tr><tr><td>SL-06</td><td>sweep the ledger, the catalogue and every design section, classifying each member</td><td>RL-021 RL-007 RL-015</td><td class='n warn'>PARTIAL</td><td class='n'>2738 members swept, 2728 unassigned</td></tr><tr><td>SL-07</td><td>hold the written order and decisions as this document</td><td>RL-007 RL-017 RL-021</td><td class='n lit'>OK</td><td class='n'>claims authority and names what it supersedes</td></tr><tr><td>SL-08</td><td>measure each ruling against running code and render the conformance board</td><td>RL-021 RL-012</td><td class='n lit'>OK</td><td class='n'>ruling-conformance.html generated 1 min ago, 14065 bytes</td></tr><tr><td>SL-09</td><td>render the plan board with per-slice counts, the active slice and the next row</td><td>RL-012 RL-017 RL-021</td><td class='n lit'>OK</td><td class='n'>ajit-master-plan.html generated 1 min ago, 9551 bytes</td></tr><tr><td>SL-10</td><td>refuse a new module under src/ that no plan row names</td><td>RL-021 RL-007</td><td class='n warn'>NOT MEASURED</td><td class='n'>0/2 hook scripts present, 0/2 registered</td></tr><tr><td>SL-11</td><td>inject the ruling list and the active slice into every session at start</td><td>RL-021 RL-016 RL-001</td><td class='n warn'>NOT MEASURED</td><td class='n'>0/2 hook scripts present, 0/2 registered</td></tr><tr><td>SL-12</td><td>resume the paper engine from a persisted watermark instead of re-priming the archive</td><td>RL-020 RL-005 RL-018</td><td class='n warn'>DEGRADED</td><td class='n'>strategy &#x27;plumbing-momentum&#x27;, edge claim False, 334 fill(s), heartbeat 1667s old</td></tr><tr><td>SL-13</td><td>make this plan the document every other document points at</td><td>RL-007 RL-019 RL-018 RL-021</td><td class='n warn'>PARTIAL</td><td class='n'>old plan marked superseded: False, goal records §3b: True</td></tr>
+</table>
+<h2>Reconciliation — 2728 UNASSIGNED</h2><table><tr><th>Population</th><th>Members</th><th>Outcomes</th></tr><tr><td>catalogue-row</td><td class='n'>192</td><td><span class='fail'>UNASSIGNED 192</span></td></tr><tr><td>design-section</td><td class='n'>1035</td><td><span class='n'>ASSIGNED 6</span> · <span class='n'>PROSE 4</span> · <span class='fail'>UNASSIGNED 1025</span></td></tr><tr><td>ledger-row</td><td class='n'>1511</td><td><span class='fail'>UNASSIGNED 1511</span></td></tr></table>
+<div class="foot">Counts are measured by the probe each row names; a row with no
+probe result reads NOT MEASURED and is never counted as built. A slice with no
+rows reads 0 / 0 — unplanned work, not finished work. No dates and no effort
+estimates appear here on purpose: an estimate would be a guess presented as a
+number. Plan: docs/AJIT-MASTER-PLAN.md. Rulings: docs/rulings.json.</div>
+</body></html>
