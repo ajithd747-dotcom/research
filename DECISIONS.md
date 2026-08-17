@@ -720,3 +720,105 @@ sits beside observations and never inside them.
 browser, because a server-rendered "generated 5 days ago" is impossible for the
 case that matters: the server that would render it is the one that stopped. Past
 the threshold it names the *generator*, not the page age.
+
+---
+
+## 15. The box stays up, and the plan became a file — 2026-08-17
+
+Two rulings and a sweep, all on one day. The user's question that started it:
+*"why did we fails to completely implement or start papper trading according to
+the plan we discussed each segment are like there own bots with its own
+architecture, data features etc."*
+
+### 24/7 uptime — RL-020
+
+The instance is **not preemptible** — `scheduling/preemptible` reads FALSE — so
+the gaps were deliberate stops: **124.3h** from 2026-08-10 to 08-15, and
+**14.1h** from 08-16 17:41 to 08-17 07:50. Against a market that never closes
+and §3a's intraday mandate, a bot that is off part of the week cannot be
+honestly judged.
+
+The cold-start cost travelled with the ruling and turned out to be the larger
+problem. See §15.3.
+
+### Each segment is its own bot — RL-019
+
+Recorded verbatim in the goal document as **§3b**. Four segment bots, three
+brains inside each, twelve brains, sharing only the store, reader, cost engine
+and promotion pipeline. It composes with the 2026-08-03 direction ruling in §9
+rather than replacing it — that one splits by direction, this one by segment,
+and the user chose the nested reading over twelve independent bots.
+
+§5a is amended by it: universe-wide scanning was written here as *"a property of
+the system"* and is now a property of **each bot**.
+
+### 15.1 What the sweep found
+
+`AJIT-MASTER-PLAN.md` reconciles three populations rather than one. The ledger
+already reconciled rows; nothing reconciled **design sections** — argued-through
+prose that never became a row.
+
+| Population | Members | Unassigned |
+|---|---|---|
+| ledger rows | 1,511 | 1,511 |
+| catalogue rows | 192 | 192 |
+| design sections | 1,035 | 1,025 |
+| **total** | **2,738** | **2,728** |
+
+Rulings covered: **9 of 21**, every one of them `system` or `shared` scope.
+**Every `per-segment` ruling reads 0/4. Every `per-brain` ruling reads 0/12.**
+
+Three ideas that live in design documents and in **zero** ledger rows: the
+Goodhart defence, attention scarcity — the mechanism §5a is built on — and the
+examination-hall framing itself, which is the user's own ruling of 2026-08-02.
+
+Across the six `IDEAS-*.md` files: **183 rated HIGH, at most 69 traced into
+`src/`, 106 with no trace anywhere.** Eight of the ten the corpus itself named
+*"the ten to build first"* are unbuilt. `src/strategy/` holds two modules and
+neither is an opportunity monitor.
+
+### 15.2 The store existed on one disk
+
+Measured before it was fixed: the GCS bucket held `raw/`, `ledger/` and
+`universe/` and nothing else. `store/funding` is 482 MB, is the OBSERVED record
+whose start date is the promotion clock, and has **no raw counterpart** —
+funding is polled straight into the store, so `raw/binance-funding` does not
+exist. `funding_reconstructed` cannot substitute: its availability times are the
+fetch, deliberately, which is what makes it useless for a backtest.
+
+Fixed the same day. Verified: **32,640 objects** under `store/funding/`.
+
+### 15.3 The paper engine was killing itself
+
+The conformance board caught this unprompted on its first run. The engine was
+**OOM-killed at 09:49:54Z — exit 137, after 7,183s, the fourth restart that
+day** — holding 5.5 GB while `statuswall.cli` held 4.9 GB and capture held ~9 GB,
+on a 30 GB box with no swap. It then spent ~11 minutes re-feeding 2,316,171
+archived events before trading anything.
+
+Three causes, not one:
+
+- `prime()` built a `TapeEvent` and a `MarketEvent` for every archived row purely
+  to `len()` them.
+- `poll()` re-read the **entire** bars dataset every 60 seconds, for an archive
+  growing ~3.4 GB/day.
+- `_emitted` grew by one entry per event ever seen and never shrank.
+
+A persisted **availability** watermark answers all three. Availability rather
+than event time is the safety argument: a correction to an old bar carries a
+later availability time by definition, so it still arrives through the bound,
+while a bound on event time would hide corrections.
+
+Measured after the change on the live engine: **RSS 7,321 MB → ~1,200 MB.**
+
+### 15.4 What is now enforced rather than remembered
+
+`CLAUDE.md` already said *"search the ledger first"* and it still failed. So:
+`docs/rulings.json` holds 21 rulings verbatim and dated; a PreToolUse hook
+refuses a **new** module under `src/` that no plan row names; a SessionStart hook
+prints the ruling list into every session; and a conformance board renders one
+row per ruling, NOT MEASURED where no probe exists and never green without one.
+
+A fifth cause was mechanical rather than editorial: memory is keyed by working
+directory, and a session started from `/` read an **empty** key while twelve
+memories — including *"Interview, don't assume"* — sat under another. Symlinked.
