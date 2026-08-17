@@ -822,3 +822,104 @@ row per ruling, NOT MEASURED where no probe exists and never green without one.
 A fifth cause was mechanical rather than editorial: memory is keyed by working
 directory, and a session started from `/` read an **empty** key while twelve
 memories — including *"Interview, don't assume"* — sat under another. Symlinked.
+
+### 15.5 The scan is the hot spot, not the walk — 2026-08-17
+
+§15.3 named the schema walk as what made a poll unbounded, from a read filtered
+to zero rows that had not finished in 10 minutes. **That attribution was wrong.**
+Re-measured the same day on the live bars dataset — 52,487 fragments across
+2,230 symbol partitions — with each part of a read timed separately:
+
+| part of a poll | cold | warm |
+|---|---|---|
+| dataset discovery | 0.6s | 0.6s |
+| schema walk, every fragment footer | 8.3s | — |
+| schema walk, cached | — | 8 footers, 1.7s |
+| scan filtered to match NOTHING | **185.6s** | 8.8s |
+
+The walk was ~8s of a ~195s read. The scan dominates, and it is cold-cache IO:
+the identical zero-row scan costs 185.6s cold and 8.8s warm. That is why it read
+as unbounded on a box at load 27 holding 22 of 29 GB, with the page cache being
+evicted under it. The 10-minute observation was real; what it was blamed on was
+not.
+
+**Both fixes, in the order the user chose.** Caching the unified schema per store
+generation (SL-14) removes a duplicate full walk per read and — more useful —
+makes the cost *measurable*: the heartbeat now carries `fragment_schema_reads`
+and `poll_seconds`, so `probe_poll_scan_cost` grades a poll before an OOM
+reveals it rather than after. Partitioning by availability HOUR (SL-15) is the one
+that fixes the scan, because only a time in the path lets pyarrow skip
+directories without opening them - and hour rather than date because 538 MB
+across 52,487 files is ~6,000 new files a day, so a date directory holds a whole
+day of them by evening while an hour directory stays at ~250 however long
+capture runs.
+
+**The property neither may break.** The walk cannot be deleted: without it
+pyarrow infers the schema from the first fragment and silently drops columns
+added by later partitions — `funding_interval_hours` on 2026-08-09, which turns
+a 4-hourly funding rate into an 8-hourly one, wrong by a factor of two. The
+cache keeps it by caching rather than skipping: a column added by a later
+partition still appears through a warm cache, and a fragment that disappears
+forces a full rebuild rather than leaving a column asserted from a file that is
+gone. Both are asserted in `tests/test_schema_cache.py`.
+
+**Rejected.** Pruning fragments by file mtime — mtime is not a data property and
+a GCS restore resets it, so the store would silently skip real rows. Having the
+engine record consumed snapshot ids — fixes one reader, and the boards generator
+is a second one; it stalled for 1h50m on 2026-08-17 on exactly this cost.
+
+The lesson is about method rather than parquet: a slow thing and the part of it
+that is slow are different facts, and a 10-minute stopwatch on the whole read
+cannot tell them apart. Timing each part separately took eleven minutes and
+reversed the conclusion.
+
+**Measured after building it, on a copy of real data rather than a fixture.** A 60-symbol slice of
+the live bars dataset, 1,587 legacy fragments: a one-hour bound selects **59 of 1,805** fragments
+under the hour layout against **1,587 of 1,587** under the legacy one, and both return byte-
+identical rows. That is SL-15's whole claim in one number.
+
+Two things the trial caught that no unit test had:
+
+1. **A bounded read of an unmigrated dataset raised `ArrowInvalid`.** The filter named
+   `availability_hour`, which the old layout has no field for, so the read did not merely lose
+   pruning - it failed outright. Every dataset is in the old layout until its own migration runs and
+   the paper engine polls with a bound every 60 seconds, so this would have stopped the engine the
+   moment it landed, before any migration could fix it.
+2. **The file count goes UP, and the "~20x fewer files" claim written into the plan was wrong.**
+   These writers already snapshot about hourly, so compaction has little to merge, while a legacy
+   part spanning more than one hour is split across hour directories. Bars 1,587 → 1,805 parts,
+   `dated_futures` 680 → 1,472. The saving is pruning and nothing else.
+
+The method is the point: both were found by running the real thing against a copy before touching
+the live store, and neither would have been found by any number of fixtures.
+
+### 15.6 A code edit deploys itself here - 2026-08-17
+
+Within minutes of the hour-partitioning writer landing on disk, the LIVE bars dataset held **4,595
+hour-partitioned parts beside 2,231 legacy `symbol=` directories**, before any migration had been
+run and without anyone deploying anything. The store supervisors restart their child on a loop, and
+a restarted child imports whatever is on disk. **On this box, editing a module under `src/` is a
+deployment.**
+
+That turned a layout change into a live correctness problem. Hive partitioning gives the legacy
+parts a NULL `availability_hour`; `NULL >= '2026-08-17T12'` evaluates to null rather than true; so
+an hour-bounded read **drops every legacy row**. No error, no warning, a smaller answer. Reproduced
+in a test at 1 of 6 rows returned.
+
+**The fix is a rule about the whole dataset, not about a fragment.** Hour pruning is enabled only
+when no top-level `symbol=` directory exists. A dataset part-way through migration reads correctly
+and merely loses the speed-up, and pruning switches itself back on when the last legacy directory
+goes. Verified on the live store: `mixed layout detected: True; hour pruning active: False`, 64,341
+of 64,341 fragments selected under a bound.
+
+The migration had to learn the same lesson: it originally refused any dataset that already had hour
+directories, which by then was every dataset that mattered. It now folds both layouts together,
+hard-linking the already-hour-partitioned parts across rather than rewriting them - their snapshot
+ids answer "which data produced this" and a rewrite would change that answer.
+
+**What to carry forward.** A schema check is not a layout check. `availability_hour in schema` was
+true in exactly the state where using it was wrong, because one new part is enough to add the
+column while thousands of old ones still lack the path. And any change to a module the supervisors
+import is live the moment it is saved - there is no separate deploy step to plan around, so the
+question "what happens if half the store is written by the new code" has to be answered before the
+file is written, not before it is committed.
